@@ -644,13 +644,15 @@ sudo tail -n 20 /var/log/nginx/error.log
 >
 > 1. 时间线覆盖了哪些关键请求？
 >
->    答：1. 正常业务访问：`/`、`/api/orders`，浏览器 Firefox 访问，返回 200；2. Nikto 扫描探测：`/wp-login.php`、`/admin`、`/server-status`、`/.env`、`/config.php.bak`、`/../../etc/passwd`，返回 403/404；3. sqlmap 注入探测：`/login` 带 SQL 注入 payload，返回 400；4. SSH 暴力破解尝试：来自`203.0.113.21`、`198.51.100.77`的 SSH 账号爆破，包含 test、admin、root、oracle 等用户名，存在一条来自`203.0.113.21`的 SSH 成功登录记录；5. 本机 / 宿主机正常 SSH 登录。
+>    答：1. 正常业务访问：`/`、`/api/orders`，Firefox 浏览器 UA 访问，返回 200；2.sqlmap 模拟注入探测：`/login` 携带 SQL 注入 payload，返回 400；3.Nikto 模拟扫描探测：`/wp‑login.php`、`/admin`、`/server‑status`、`/.env`、`/config.php.bak`、`/../../etc/passwd`，返回 403/404；4. 伪装浏览器 UA 的探测请求：`/wp‑login.php`。
+时间线仅梳理 nginx access.log 的 Web 请求，不包含 auth.log 中的 SSH 相关记录。
 >
 > 2. 结论属于哪一项？依据是什么？排除了哪种可能？
 >
->    答：结论：**存在成功登录的利用迹象**。
-依据：auth.log 日志中存在 `203.0.113.21` 对账号`mym`的 SSH Accepted 成功登录记录；nginx 访问日志里仅为探测，没有 Web 侧漏洞利用成功返回 200 的敏感路径。
-排除：**仅 Web 扫描、未取得主机权限**的可能性。
+>    答：结论：**扫描 / 探测，未发现成功利用迹象**。
+依据：仅基于 nginx access.log 8083 站点 Web 访问日志；攻击来源`203.0.113.50`全部请求状态码为 400、403、404，**不存在敏感路径返回 200 的记录**，Web 日志中没有观测到漏洞利用成功的证据。
+证据边界说明：本分析仅针对 Web 访问日志；实验中执行可选主机核对命令看到的 auth.log 中 SSH 爆破与登录记录属于独立主机侧事件，**不纳入本次 Web 事件分析证据，不推断主机是否被入侵**。
+排除可能性：排除 “Web 攻击疑似利用成功” 这一可能。
 
 ---
 
@@ -659,15 +661,15 @@ sudo tail -n 20 /var/log/nginx/error.log
 | 项目 | 记录 |
 | :--- | :--- |
 | 攻击来源 IP | 203.0.113.50|
-| 扫描器 User-Agent（自报，不能证明真实工具） |`Nikto/2.5.0`、`Mozilla/5.0` |
-| 被探测路径（至少 5 个） |/wp-login.php、/etc/passwd、/admin、/server-status、/config.php.bak |
-| 攻击来源 `203.0.113.50` 的状态码分布（200/400/403/404/500 各多少） |200：0；400：0；403：多条；404：多条；500：0 |
-| 正常流量来源（`127.0.0.1` 手工/脚本请求、宿主机浏览器等） |`127.0.0.1`，访问路径 `/`、`/api/orders`，UA：`Mozilla/5.0 (X11; Linux x86_64) Firefox/128.0`，返回 200 |
-| 攻击时间范围 |2026-10-29 11:22 左右 |
-| 结论（扫描/疑似成功/证据不足） | 扫描（仅 Web 探测扫描，未发现利用成功）|
-| 关键 LogQL |`{job="nginx_access"}="server_port=8083"`<br>`{job="nginx_access"}="server_port=8083"remote_addr="203.0.113.50"` |
-| 证据截图 |Grafana Loki 访问日志查询页面、状态码统计页面、UA 统计页面 |
-| 处置建议（封 IP、限速、WAF、告警） |对`203.0.113.50`添加临时封禁；WAF 添加规则拦截敏感路径探测（/etc/passwd、admin、config 备份文件等）；配置告警，同一 IP 短时间大量 403/404 探测触发告警；对异常访问源限速 |
+| 扫描器 User-Agent（自报，不能证明真实工具） |Nikto/2.5.0、sqlmap/1.8 |
+| 被探测路径（至少 5 个） |/wp-login.php、/admin、/server-status、/.env、/config.php.bak、/../../etc/passwd、/login|
+| 攻击来源 `203.0.113.50` 的状态码分布（200/400/403/404/500 各多少） |200：0；400：4 条；403：3 条；404：6 条；500：0|
+| 正常流量来源（`127.0.0.1` 手工/脚本请求、宿主机浏览器等） |127.0.0.1、192.168.125.128；UA：Mozilla/5.0 (X11; Linux x86_64) Firefox/128.0；访问/、/api/orders，状态码 200 |
+| 攻击时间范围 |2026-10-29 21:07:20 左右 |
+| 结论（扫描/疑似成功/证据不足） |扫描 / 探测，未发现成功利用迹象（仅基于 nginx access.log Web 日志，不纳入 auth.log 主机 SSH 日志）|
+| 关键 LogQL |`{job="nginx_access"}|
+| 证据截图 |Loki 原始日志时序截图、按 IP 聚合图、按 UA 聚合图、按 path+status 聚合图|
+| 处置建议（封 IP、限速、WAF、告警） |1. 防火墙封禁攻击 IP `203.0.113.50`；2. WAF 增加规则拦截 Nikto、sqlmap 特征 UA 以及 SQL 注入 payload；3. 对`/.env`、`/admin`、`/server-status`等敏感路径做访问限制；4. 配置日志告警，短时间批量出现 400/403/404 请求时触发告警；5. 对 SSH 单独加固，开启密钥认证、关闭密码登录。|
 
 ---
 
