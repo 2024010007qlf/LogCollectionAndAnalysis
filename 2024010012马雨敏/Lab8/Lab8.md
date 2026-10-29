@@ -276,13 +276,13 @@ systemctl status alloy --no-pager
 >
 > 1. 8083 站点是否验证通过？`/`、`/admin`、`/.env` 的返回状态码分别是什么？
 >
->    答：8083 站点验证通过。`/` 返回 200，`/admin` 返回 403，`/.env` 返回 404。
+>    答：8083 站点验证通过；/ 返回 200，/admin 返回 403，/.env 返回 404。
 >
 > 2. `{job="nginx_access"} |= "server_port=8083"` 包含哪些正常请求？来源 IP 是什么？若宿主机无法访问，使用哪两条请求作为对照？
 >
->    答：包含 GET `/`、GET `/api/orders?id=1`、宿主机浏览器发起的 GET `/`；
-来源 IP：`127.0.0.1`（本机 curl）、`192.168.125.128`（宿主机）；
-如果宿主机无法访问，使用 `curl http://127.0.0.1:8083/admin` 和 `curl http://127.0.0.1:8083/.env` 这两条手工请求作为对照。
+>    答：包含 GET /、GET /api/orders?id=1、宿主机浏览器发起的 GET /；
+来源 IP：127.0.0.1（本机 curl）、192.168.125.128（宿主机）；
+若宿主机无法访问，使用 GET /admin 和 GET /.env 两条手工探测请求作为对照。
 
 ![概览](imgs/lab8-overview.png)
 
@@ -372,20 +372,20 @@ sudo tail -n 30 /var/log/nginx/access.log
 >
 > 1. 选择了哪一条日志？原文是什么？
 >
->    答：203.0.113.50 - - [29/Oct/2026:11:22:33 +0800] "GET /login?user=admin'OR'1'='1 HTTP/1.1" 400 24 "-" "sqlmap/1.8" server_port=8083
+>    答：选取来源203.0.113.50的 Web 路径探测日志；
+原文：2026-10-29 21:07:20.969 203.0.113.50 - - [29/Oct/2026:21:07:20 +0800] "GET /wp-login.php HTTP/1.1" 404 22 "-" "Nikto/2.5.0"
 >
 > 2. 该日志的 4W1R 分别是什么？
 >
->    答：When：29/Oct/2026:11:22:33 +0800
-Where：本机 nginx，标签`host="mym-VMware-Virtual-Platform"`，服务端口 8083
-Who：来源 203.0.113.50，User-Agent 自报为 sqlmap/1.8；该值由脚本设置，不能据此认定真实工具
-What：向 /login 发送包含`admin'OR'1'='1`的 GET 请求，进行 SQL 注入探测
-Result：演示站返回 400；该状态码只说明请求到达了对应 location，不能证明注入被识别、拦截或成功。
+>    答：When：`29/Oct/2026:21:07:20 +0800`
+Where：本机 Nginx 服务，标签`host="mym-VMware-Virtual-Platform"`，8083 站点
+Who：来源 IP `203.0.113.50`，User-Agent 自报为`Nikto/2.5.0`；UA 可伪造，不能仅凭 UA 判定真实工具
+What：向`/wp-login.php`发送 GET 请求，尝试探测 WordPress 后台登录地址
+Result：返回状态码 404，代表该页面不存在；仅证明请求到达 Nginx，探测未成功
 >
 > 3. 攻击请求与正常请求在来源、User-Agent、路径上有哪些差异？
 >
->    答：来源 IP：正常请求来源为127.0.0.1（本机）、192.168.125.128（宿主机浏览器）；攻击请求来源为203.0.113.50。
-User-Agent：正常请求 UA 是标准浏览器标识（Firefox）；攻击请求 UA 为扫描工具标识（sqlmap/1.8、Nikto/2.5.0），非常规浏览器 UA。访问路径：正常请求访问/、/api/orders?id=1这类业务接口；攻击请求访问/login、/.env、/config.php.bak、/../../etc/passwd等敏感路径，携带 SQL 注入、目录遍历、备份文件探测 payload。
+>    答：来源上攻击流量为`203.0.113.50`，正常请求多为`127.0.0.1`、宿主机内网 IP；攻击 UA 常为扫描工具标识（Nikto、sqlmap），正常请求是浏览器 UA；攻击路径是`/wp-login.php`、`/admin`、`/.env`这类敏感探测路径，正常路径为`/`、`/api/orders?id=1`业务接口。
 
 ---
 
@@ -435,11 +435,12 @@ sum by (remote_addr) (
 >
 > 1. 请求数最多的来源 IP 是哪一个？请求数约为多少？
 >
->    答：请求数最多的来源 IP 是 **203.0.113.50**，请求数约 20 条（扫描攻击流量）。
+>    答：请求最多的来源 IP 是 **203.0.113.50**，请求数约 **9 条**，为 Nikto、sqlmap 的攻击扫描流量。
 >
 > 2. 除攻击来源外还有哪些来源？分别对应什么请求？
 >
->    答：- 来源 IP：127.0.0.1，对应请求：访问 `/`、`/api/orders?id=1`，为本机正常业务访问；来源 IP：192.168.125.128，对应请求：访问 `/`，为宿主机浏览器正常网页访问。
+>    答：- `127.0.0.1`：本机回环地址，2 条手工请求、2 条脚本正常业务请求；
+`192.168.125.128`：宿主机（浏览器），访问网站正常业务页面，如 `/`、`/api/orders?id=1` 等正常业务接口。
 ![来源 IP 聚合](imgs/lab8-top-ip.png)
 
 ### 5.2 User-Agent
@@ -482,13 +483,18 @@ sum by (http_user_agent) (
 >
 > 1. 出现了哪些 User-Agent？哪些具有自动化工具特征，哪些具有正常浏览器特征？
 >
->    答：自动化工具 UA：sqlmap/1.8、Nikto/2.5.0，属于扫描、注入工具，是自动化攻击特征；正常浏览器 UA：Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/120.0，是 Linux 下 Firefox 浏览器，属于正常浏览器特征。
+>    答：出现的 User-Agent：`Nikto/2.5.0`、`sqlmap/1.8`、`Mozilla/5.0 (X11; Linux x86_64) Firefox/128.0`
+自动化工具特征：`Nikto/2.5.0`（Web 扫描器）、`sqlmap/1.8`（SQL 注入工具）；
+正常浏览器特征：`Mozilla/5.0 (X11; Linux x86_64) Firefox/128.0`（Firefox 浏览器标识）。
 >
 > 2. 同一 User-Agent 对应多少条请求？请求了哪些路径？
 >
->    答：1. `sqlmap/1.8`：多条请求，访问路径 `/login?user=admin`，做 SQL 注入探测；
-2. `Nikto/2.5.0`：多条请求，访问 `/login.php`、`/etc/passwd`、`/server-status`、`/admin`、`/config.php.bak` 等敏感路径；
-3. `Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/120.0`：少量请求，访问首页 `/`、`/api/orders?id=1`，正常业务访问。
+>    答：1. **Nikto/2.5.0**：共 9 条
+请求路径：`/wp-login.php`、`/../../etc/passwd`、`/server-status`、`/admin`、`/config.php.bak`、`/.env`
+2. **sqlmap/1.8**：多条（截图里是`/login?user=admin'OR'1'='1`）
+请求路径：`/login?user=admin'OR'1'='1`
+3. **Mozilla/5.0 (X11; Linux x86_64) Firefox/128.0**：多条正常访问
+请求路径：`/`、`/api/orders?id=1`
 
 ![扫描器 UA](imgs/lab8-scanner.png)
 
@@ -534,8 +540,8 @@ sum by (path, status) (
 >
 > 1. 哪些路径属于业务正常路径？哪些属于攻击探测路径？
 >
->    答：正常业务路径：/、/api/orders；
-攻击探测路径：/admin、/login?xxx、/.env、/config.php.bak、/wp-login.php、/server-status、/../.../etc/passwd。
+>    答：业务正常路径：`/`、`/api/orders`
+攻击探测路径：`/admin`、`/login?…`、`/.env`、`/config.php.bak`、`/wp-login.php`、`/server-status`、`/../../etc/passwd`
 >
 > 2. 是否存在敏感路径返回 `200`？如果有，是哪一条？
 >
@@ -567,22 +573,13 @@ sum by (path, status) (
 >
 > 1. 正常流量的来源 IP 和 User-Agent 是什么？
 >
->    答：来源 IP：`127.0.0.1`；User-Agent：`Mozilla/5.0 (X11; Linux x86_64) Firefox/128.0`。
+>    答：来源 IP：`127.0.0.1`、宿主机地址（图中为`192.168.125.128`）
+User-Agent：`Mozilla/5.0 (X11; Linux x86_64) Firefox/128.0`
 >
 > 2. 仅依据“404 数量较多”判断攻击，会遗漏哪些信息？
 >
->    答： ① 部分攻击请求返回的是 400、403，不是 404，这部分攻击行为会漏掉；
-② 无法区分 404 是正常访问产生，还是扫描探测产生；
-③ 丢失来源 IP、请求路径、UA、请求时间聚集特征这些关键判断依据；
-④ 无法识别伪装成正常浏览器 UA 的攻击流量。
+>    答： 1. 会遗漏**403、400**这类同样属于攻击探测返回的状态码；2. 无法区分流量来源 IP，不知道哪些是攻击 IP、哪些是正常用户；3. 看不到 User-Agent，无法识别扫描工具（nikto、sqlmap）；4. 看不到访问路径，无法判断是敏感探测路径还是普通不存在的页面；5. 看不到时间分布，无法识别短时间集中爆发的扫描特征；6. 部分攻击流量不一定返回 404，单纯统计 404 会漏掉这部分攻击行为。
 
-今天 20:19
-
- 如何识别伪装成正常浏览器UA的攻击流量？
-
- 除了文中提到的，还有哪些因素会导致404错误？
-
- 如何根据来源IP、请求路径、UA、请求时间聚集特征判断攻击？
 
 ---
 
@@ -647,13 +644,13 @@ sudo tail -n 20 /var/log/nginx/error.log
 >
 > 1. 时间线覆盖了哪些关键请求？
 >
->    答：① 来自`203.0.113.50`的 Web 探测攻击请求（SQL 注入、路径穿越、敏感文件 / 后台路径扫描）；② 来自`203.0.113.21`的 SSH 暴力破解请求，包含多次密码失败，并且存在一条成功 SSH 登录记录；③ 本地`127.0.0.1`的正常业务访问请求（`/`、`/api/orders`）；④ 另外还有`198.51.100.77`的 SSH 爆破尝试。
+>    答：1. 正常业务访问：`/`、`/api/orders`，浏览器 Firefox 访问，返回 200；2. Nikto 扫描探测：`/wp-login.php`、`/admin`、`/server-status`、`/.env`、`/config.php.bak`、`/../../etc/passwd`，返回 403/404；3. sqlmap 注入探测：`/login` 带 SQL 注入 payload，返回 400；4. SSH 暴力破解尝试：来自`203.0.113.21`、`198.51.100.77`的 SSH 账号爆破，包含 test、admin、root、oracle 等用户名，存在一条来自`203.0.113.21`的 SSH 成功登录记录；5. 本机 / 宿主机正常 SSH 登录。
 >
 > 2. 结论属于哪一项？依据是什么？排除了哪种可能？
 >
->    答：结论：**存在 SSH 暴力破解并且成功登录，Web 侧 8083 站点未发现漏洞利用成功迹象**。
-依据：auth.log 中`203.0.113.21`有大量 SSH Failed 密码记录，同时出现`Accepted password for mym`成功登录；nginx error.log 无 8083 站点异常错误，access 日志里所有攻击探测路径仅返回 400/403/404，没有成功利用的证据。
-排除：**8083 Web 服务被直接入侵利用的可能性**；但本次只核查 auth.log 和 nginx 错误日志，不能排除主机侧其他风险。
+>    答：结论：**存在成功登录的利用迹象**。
+依据：auth.log 日志中存在 `203.0.113.21` 对账号`mym`的 SSH Accepted 成功登录记录；nginx 访问日志里仅为探测，没有 Web 侧漏洞利用成功返回 200 的敏感路径。
+排除：**仅 Web 扫描、未取得主机权限**的可能性。
 
 ---
 
