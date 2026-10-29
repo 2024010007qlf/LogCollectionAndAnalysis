@@ -251,3 +251,83 @@ assignments:
       - lab6-status.png 应显示按状态码分组的完整查询、时间范围和 200 与 404 的图例与曲线；pattern 展开的字段对照可以拼入，不单独强制。
       - lab6-dashboard.png 应显示 Dashboard 名称（Lab6-学号）、时间范围、面板标题“最近 5 分钟请求量”和有实际内容的曲线，用于证明看板已保存。
       - 报告与截图的一致性：曲线读数、时间点不要求与报告逐字一致，方向一致即可；报告与截图出现明显矛盾（如报告称查到本人标记但截图中缺少查询或结果）时指出即可，不因此判不合格。
+  Lab7:
+    deadline: "2026-10-29T23:59:59+08:00"
+    report_template: homework/Lab7/Lab7.md
+    required_files:
+      - Lab7.md
+      - imgs/lab7-overview.png
+      - imgs/lab7-top-ip.png
+      - imgs/lab7-users.png
+      - imgs/lab7-lock-success.png
+      - imgs/lab7-ban.png
+    template_metrics:
+      enabled: true
+      report_file: Lab7.md
+      characters: ['#', '-', '*', '`', '|', '>']
+      max_file_bytes: 200000
+    vision_files:
+      - imgs/lab7-overview.png
+      - imgs/lab7-top-ip.png
+      - imgs/lab7-users.png
+      - imgs/lab7-lock-success.png
+      - imgs/lab7-ban.png
+    review_points:
+      - 任务 1（3.1–3.4 节）：能用 systemctl 和 curl 证明 Loki、Grafana、Alloy、SSH 正常；能看到 attack.sh 的真实执行输出；能在 {job="auth"} 中查到 Failed password 日志，并说明来源 IP 与目标用户。真实攻击可能因 sshd 提前拒绝 root 等原因少于 13 行，只要看到多个来源、多个用户名的连续失败即可；允许回退到 127.0.0.2/127.0.0.3。
+      - 任务 2（4.1–4.2 节）：能按来源 IP 聚合，默认 203.0.113.21 的失败数应多于 198.51.100.77；回退模式或 sshd 提前拒绝导致数字有差异时，以本人查询结果为准。能把聚合结果与原始日志、时间范围对应起来。
+      - 任务 3（5 节）：能把失败用户名分成 invalid user（如 admin、oracle、test）与真实用户（本人用户名、root），并说明哪类更危险；分类表应来自实际查询，不能照抄讲义。
+      - 任务 4（6 节）：能查到 {job="auth"} |= "temporarily locked" 为空，能用 faillock --user 或 grep -R pam_faillock 说明 Ubuntu 24.04 默认未启用 faillock；能指出这是防线缺口，而不是把“没有锁定行”当成查询错误。若学生做了 12.2 选读并出现真实锁定行，也可接受。
+      - 任务 5（7 节）：能用 Accepted 行回答“谁、从哪、何时”三问；默认成功登录来自宿主机（如 192.168.80.1），应判断为爆破未得手、成功登录另有解释；若确有外部来源的成功登录，按证据判断。结论要基于日志，不臆测。
+      - 任务 6（8 节）：能按“先 allow OpenSSH、再 allow 3000/tcp、最后 enable”的顺序启用 ufw，用 ufw deny from 封禁攻击 IP，并用 ufw status numbered 验证；实验后能 disable。只封一个 IP 或两个都封均可，但报告要写清。
+      - 知识问答（10 节）：三题齐全，能区分“单条失败”与“暴力破解”、说明来源 IP 聚合和账号锁定防线的作用；答案与本人日志一致。
+      - 审核范围：第三节至第八节为必做，第十节 3 题必答，第十三节 5 张截图必交；第十二节为选读，不要求执行或截图。报告缺少必做小节、核心查询或截图时按未完成处理。
+      - 合理差异：IP、时间、用户名、失败行数、是否回退到回环别名以本人环境为准；允许 sshd 提前拒绝 root、允许 13 次尝试少于 13 行、允许成功登录来自宿主机。不得把合成日志、旧版 Lab7-auth.log 或讲义示例当成本人真实攻击结果；不得声称完成了未实际执行的 faillock 选读。
+    vision_review_points:
+      - 截图总要求：使用学生本人环境的电脑截图，命令和关键结果清晰可辨，能认出本人账号、学号或主机信息。允许合理拼图、裁剪无关区域、只显示代表性输出，以及不同界面语言和主题；不得使用手机拍屏，不得出现密码、私钥或访问令牌。截图应与报告填写的结果一致。
+      - lab7-overview.png 应显示 {job="auth"} 的 Failed password 查询、时间范围和至少一行展开的标签（job、filename 或 detected_level）；日志必须是真实 sshd 失败行，不能是 Lab7-auth.log 或讲义示例。
+      - lab7-top-ip.png 应显示按来源 IP 聚合的 LogQL、时间范围和 203.0.113.21 与 198.51.100.77 的计数（回退模式下为 127.0.0.2/127.0.0.3），能与报告数字对应。
+      - lab7-users.png 应显示失败用户名查询、时间范围和 invalid user 与真实用户的分类结果；至少要能辨认 admin、oracle、test 和本人用户名或 root 中的多数。
+      - lab7-lock-success.png 应显示锁定检查（temporarily locked 查询为空，或 faillock/grep 的输出）以及 Accepted 成功登录行；两者可在同一张图中拼接，但要能辨认查询与结果。
+      - lab7-ban.png 应显示 ufw status numbered 中的封禁规则、以及实验后 ufw disable 或删除规则的证据；只显示封禁或只显示关闭都可接受，但报告要说明当前状态。
+      - 报告与截图的一致性：查询、IP、用户名、时间范围和结论方向应一致；报告称查到真实失败但截图缺少查询或结果、或把合成日志当真实攻击结果时指出即可，不因此判不合格。
+  Lab8:
+    deadline: "2026-11-05T23:59:59+08:00"
+    report_template: homework/Lab8/Lab8.md
+    required_files:
+      - Lab8.md
+      - imgs/lab8-overview.png
+      - imgs/lab8-top-ip.png
+      - imgs/lab8-scanner.png
+      - imgs/lab8-paths.png
+      - imgs/lab8-timeline.png
+    template_metrics:
+      enabled: true
+      report_file: Lab8.md
+      characters: ['#', '-', '*', '`', '|', '>']
+      max_file_bytes: 200000
+    vision_files:
+      - imgs/lab8-overview.png
+      - imgs/lab8-top-ip.png
+      - imgs/lab8-scanner.png
+      - imgs/lab8-paths.png
+      - imgs/lab8-timeline.png
+    review_points:
+      - 任务 1（3.1–3.3 节）：应确认 loki、grafana-server、alloy、nginx 四个服务为 active，Loki 的 /ready 返回 ready；3.1 节的报告记录应写出 / 为 200、/admin 为 403、/.env 为 404；3.3 节应说明查询结果包含 3.2 节的正常请求，给出其来源 IP，并记录标签 job、filename、host。宿主机浏览器无法访问 8083 时，用两条 127.0.0.1 请求作对照并说明情况，同样算完成。
+      - 8083 站点由 nginx 的 return 指令生成，没有 WAF、应用或数据库参与判断。把 /admin 的 403 读成后台存在但被拦截、把 /login 的 400 读成注入被识别、把探测写成攻击成功时，指出结论边界即可，不据此判不合格。
+      - 任务 2（4.1–4.3 节）：4.3 节应粘贴一条来源为 203.0.113.50 的真实日志原文，并填满 4W1R 五格。Who 写来源地址与 UA 自报值，并说明该值由 curl -A 设置、不能认定真实工具；Result 写 400 并说明它只表示请求命中了对应 location。拿 127.0.0.1 的正常请求冒充攻击日志，或只写存在 sqlmap 扫描而不给原文时，记为未完成。
+      - 任务 3（5.1–5.2 节）：来源聚合中 203.0.113.50 应排在第一位，单次执行约 9 条；UA 聚合应出现 sqlmap/1.8 两条、Nikto/2.5.0 六条、Firefox UA 四条、Mozilla/5.0 一条。重复执行 web-attack.sh 会让计数累加，以本人查询结果为准，不要求等于 9。正常流量中出现 curl/8.x 时，报告说明了来源和用途即算合理。
+      - 任务 3（5.3–5.4 节）：路径与状态码表应覆盖 /、/api/orders、/admin、/login、/.env、/config.php.bak、/wp-login.php、/server-status 与路径穿越九行，次数按本人查询填写。路径穿越返回 404 或 400 都算正常。把敏感路径的 404 说成文件已泄露、把 403 说成漏洞存在时指出即可。5.4 节应说明只看 404 数量会漏掉来源集中度、路径特征、UA 与时间分布。
+      - 任务 4（6.1–6.2 节）：时间线应覆盖第一条攻击请求、请求最密集时段、最后一条攻击请求、是否存在敏感路径返回 200，以及正常请求出现的时间。结论从扫描未发现成功利用迹象、疑似利用成功、证据不足三项中选一，并写明证据边界。凭 sqlmap 的 UA 断定数据库被拖库，或声称已完成主机侧取证时，指出结论超出证据即可。
+      - 事件记录单（第七节）：各行都应填写，状态码分布只统计 203.0.113.50。被探测路径列够 5 个即算完成，处置建议写出封 IP、限速、WAF、告警中任一方向即可。个别行留空或措辞不完整时在反馈中提醒，不据此判不合格。
+      - 知识问答（第八节）：三题都应作答，每题 1 至 3 句。第 1 题应说明 UA 与 /.env 请求只能提供线索，判断成功还需响应内容、状态或大小异常、后续成功登录与主机侧证据；第 2 题应说明 404 可能是探测或配置固定返回，需结合来源、路径、频率与其他日志源；第 3 题应说出 UA 之外仍可用的特征，如来源集中度、路径数量、请求频率、参数特征与时间顺序。只答能或不能记为不完整。
+      - 审核范围：第三节至第八节为必做，第十一节 5 张截图必交。第十节选读（自定义 log_format、rt 与 ua 与 urt 字段、JSON 与 pattern 的取舍）不要求执行、作答或截图，未填选读不影响内容判定，报告仍应保留模板的章节结构。报告目录只应有 Lab8.md 与 imgs/ 下 5 张截图，不得复制 setup.sh、web-attack.sh、restore.sh、lablib.sh。
+      - 合理差异：IP、时间、UA、状态码、请求次数以本人真实环境为准；允许 9 条中有个别请求失败、允许重复执行后计数累加、允许宿主机浏览器的记录缺失、允许路径穿越返回 400 或 404、允许查询语句的换行与空格不同。照抄讲义示例的时间（19:09:55 至 19:10:05）与路径顺序、明显未核对本人日志时，记为未完成。
+      - 结论边界：本实验的日志来自 nginx access.log，只覆盖 HTTP 请求层。报告把 400、403、404 当成漏洞不存在的证明，或反过来当成入侵证据时，指出这类状态码只能说明请求命中了哪个 location；主机的文件、进程与网络连接状态不在本实验证据范围内。
+    vision_review_points:
+      - 截图总要求：使用学生本人虚拟机内的电脑截图，命令与关键结果清晰可辨，能认出主机名、时间范围或查询语句。允许合理拼图、裁剪无关区域、只保留代表性输出，以及不同界面语言与主题；不得使用手机拍屏，不得出现密码、私钥或访问令牌。不得把讲义示例日志当成本人结果。
+      - lab8-overview.png 应显示 {job="nginx_access"} |= "server_port=8083" 的查询、时间范围和至少一条真实访问日志，展开的标签能辨认 job、filename、host 中的多数。出现 Lab8-setup-check 的日志时判为不合格，说明自检排除规则未生效，应修复配置后重新采集。
+      - lab8-top-ip.png 应显示按来源 IP 聚合的查询与结果，能辨认 203.0.113.50 与 127.0.0.1 两项计数，并与报告数字方向一致。只有来源标签看不到计数、或结果为空时判为不完整，并指出缺哪一项。
+      - lab8-scanner.png 应显示按 UA 聚合或扫描器 UA 过滤的查询与结果，能辨认 sqlmap、Nikto 与正常浏览器 UA。三者缺一项时判为不完整并指出缺哪一项；用 sqlmap 与 Nikto 的过滤结果代替 UA 聚合时，报告写清查询内容即可。
+      - lab8-paths.png 应显示路径与状态码的查询或聚合表，至少能辨认 /admin 的 403、/.env 的 404、/login 的 400、/wp-login.php 的 404 中的多数。
+      - lab8-timeline.png 应按时间升序显示攻击时间线，能看出首条、末条与密集时段，并能辨认来源 203.0.113.50。只有单条日志、或看不到时间列时判为不完整。
+      - 报告与截图的一致性：IP、UA、状态码、时间范围与结论方向应一致，不要求逐字相同。报告称查到某个来源或路径而截图缺少对应结果、或截图明显是讲义示例时指出即可。核心证据整体缺失（既没有 8083 的日志查询结果，也没有来源聚合与时间线）时才判为不合格。
