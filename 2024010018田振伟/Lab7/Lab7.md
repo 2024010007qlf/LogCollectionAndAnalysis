@@ -379,11 +379,11 @@ grep -R "pam_faillock" /etc/pam.d/ /etc/security/faillock.conf
 >
 > ① 日志中是否有 `pam_faillock` 锁定行？`faillock --user` 和 `grep` 的输出是什么？
 >
-> 答：
+> 答：日志中没有 `temporarily locked` 相关的 pam_faillock 锁定行。 执行 `sudo faillock --user 你的用户名` 后，输出提示该用户没有失败登录记录 /faillock 模块未启用； 执行 `grep -R "pam_faillock" /etc/pam.d/ /etc/security/faillock.conf` 没有匹配到相关配置，说明系统没有加载、启用 pam_faillock 模块。
 >
 > ② 如果没有锁定行，说明这台机器缺少哪道防护？这对处置建议有什么影响？
 >
-> 答：
+> 答：缺少 PAM 账号失败锁定防护（pam_faillock），该防护作用是账号连续密码失败达到阈值后临时锁定账号，减缓暴力破解。   影响：当前机器没有自动账号锁定机制，攻击者可以持续对有效账号进行 SSH 密码爆破，风险更高；处置上除了拉黑攻击源 IP 之外，还需要额外建议管理员启用 `pam_faillock` 配置账号锁定策略，同时加固密码复杂度、关闭弱口令账号。
 
 ---
 
@@ -521,7 +521,7 @@ sudo ufw status
 | 账号锁定防线是否启用 |未启用 |
 | 是否有成功登录 |无成功登录 |
 | 成功登录来源与判断 |无成功登录记录 |
-| 关键 LogQL |`{job="syslog"} |
+| 关键 LogQL |`{job="auth"} |
 | 证据截图 |日志截图、ufw status numbered 输出截图 |
 | 修复动作 |使用 ufw 封禁攻击 IP 203.0.113.21、198.51.100.77；放行 ssh 和 3000 端口；演练结束后执行`ufw disable`恢复基线，防火墙回到不活动状态 |
 | 成功登录三问的回答（第七节） |本次事件未发生成功登录，无入侵落地 |
