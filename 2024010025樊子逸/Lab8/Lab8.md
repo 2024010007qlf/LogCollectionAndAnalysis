@@ -281,7 +281,10 @@ systemctl status alloy --no-pager
 > 2. `{job="nginx_access"} |= "server_port=8083"` 包含哪些正常请求？来源 IP 是什么？若宿主机无法访问，使用哪两条请求作为对照？
 >
 >    答：包含虚拟机本地 curl 发起的/与/api/orders?id=1，以及 web‑attack.sh 脚本产生的 2 条正常访问；来源 IP 为127.0.0.1；使用curl发送的 Firefox‑UA 两条请求作为正常流量对照。
-
+>
+>
+>
+>
 ![概览](imgs/lab8-overview.png)
 
 ---
