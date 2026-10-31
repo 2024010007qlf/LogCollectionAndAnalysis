@@ -635,7 +635,7 @@ sudo tail -n 20 /var/log/nginx/error.log
 >
 > 1. 时间线覆盖了哪些关键请求？
 >
->    答：包含本机 127.0.0.1 的正常业务访问请求；来自 203.0.113.50 的 sqlmap SQL 注入探测、Nikto 多路径扫描、敏感配置文件`.env`探测、备份文件`config.php.bak`探测、后台`/admin`路径探测、nginx 状态页`/server-status`探测、WordPress`/wp-login.php`探测、`/../../etc/passwd`路径穿越探测，以及 UA 伪装为 Mozilla/5.0 的探测请求。
+>    答：包含本机 127.0.0.1 的正常业务相关访问请求；来自 203.0.113.50 的 sqlmap SQL 注入探测、Nikto 多路径扫描、敏感配置文件`.env`探测、备份文件`config.php.bak`探测、后台`/admin`路径探测、nginx 状态页`/server-status`探测、WordPress`/wp-login.php`探测、`/../../etc/passwd`路径穿越探测，以及 UA 伪装为 Mozilla/5.0 的探测请求。
 >
 > 2. 结论属于哪一项？依据是什么？排除了哪种可能？
 >
