@@ -277,7 +277,7 @@ systemctl status alloy --no-pager
 > 1. 8083 站点是否验证通过？`/`、`/admin`、`/.env` 的返回状态码分别是什么？
 >
 >    答：8083 站点验证通过。
-`/`：200；`/admin`：404；`/.env`：404
+`/`：200；`/admin`：403；`/.env`：404
 >
 > 2. `{job="nginx_access"} |= "server_port=8083"` 包含哪些正常请求？来源 IP 是什么？若宿主机无法访问，使用哪两条请求作为对照？
 >
@@ -485,7 +485,11 @@ sum by (http_user_agent) (
 >
 > 2. 同一 User-Agent 对应多少条请求？请求了哪些路径？
 >
->    答：Nikto/2.5.0：5 条请求，路径：/wp-login.php、/server-status、/admin、/config.php.bak、/.env；       sqlmap/1.8：2 条请求，路径：/login?user=admin'OR'1'='1；Mozilla/5.0：1 条请求，路径：/etc/passwd；              Mozilla/5.0 (X11; Linux x86_64) Firefox/128.0：2 条请求，路径：/、/api/orders?id=1。
+>    答：- `Nikto/2.5.0`：5 条，请求 `/.env`、`/config.php.bak`、`/admin`、`/server-status`、`/wp-login.php`（敏感文件、后台路径探测）
+- `sqlmap/1.8`：2 条，请求 `/login?user=admin'OR'1'='1`（SQL 注入探测）
+- `Mozilla/5.0`：1 条，请求 `/wp-login.php`，伪装浏览器探测
+- `Mozilla/5.0 (X11; Linux x86_64) Firefox/128.0`：4 条，访问 `/`、`/api/orders?id=1` 等正常业务路径
+- `"-"`（空UA）：1 条，无UA标识的请求
 
 ![扫描器 UA](imgs/lab8-scanner.png)
 
