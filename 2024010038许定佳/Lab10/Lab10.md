@@ -578,7 +578,7 @@ sudo ls -lh /var/log/course-demo
 >
 > 1. `du -sh` 中最大的文件是什么？`filler.bin` 和 `app.log` 分别占用多少空间？
 >
->    **答：**du -sh 中最大的文件是 filler.bin；filler.bin 占用 221M，app.log 占用 18M。
+>    **答：**`filler.bin`约 220MB，`app.log`约 20~30MB，分区内最大文件是`filler.bin`。
 >
 > 2. 结合任务 1 和任务 2，说明为什么**旧备份文件和持续增长的日志共同导致本次故障**。
 >
@@ -602,7 +602,7 @@ df -i /var/log/course-demo
 >
 > `IUse%` 是多少？为什么本次应优先判断为块空间耗尽，而不是 inode 耗尽？
 >
-> **答：**IUse% 是 1%。inode 使用率很低，inode 资源充足；本次是大文件占用磁盘块空间，把存储数据的块空间耗尽，不是创建大量小文件耗尽 inode，所以优先判断为块空间耗尽。
+> **答：**IUse% 是%1，inode 资源充足。inode 耗尽时磁盘块仍有空闲，只是不能新建文件；本次分区数据块被日志文件占满，出现 ENOSPC 报错，所以故障为块空间耗尽
 
 ### 5.3 为什么要检查“删除了，但空间没回来”
 
@@ -636,7 +636,7 @@ sudo lsof +L1 | grep course-demo || true
 >
 > 1. 本次 `lsof +L1` 是否有与 `course-demo` 相关的结果？结合服务状态解释原因。
 >
->    **答：**本次`lsof +L1`没有course-demo 相关结果。`lsof +L1`用来查找已经被删除、但进程还持有句柄的文件（删除后空间不释放的幽灵文件）；当前已经没有进程在打开占用该目录下已删除文件，相关业务进程已经停止或者已经重新释放文件句柄，因此没有输出。
+>    **答：**本次 lsof +L1 没有 course-demo 相关结果。lsof +L1 用来查找已经被删除、但进程还持有句柄的幽灵文件，对应 “df 满、du 统计很小” 的排查场景。执行该命令时 course-logwriter 服务已经退出，没有残留打开的已删除文件，因此输出为空；输出为空仅代表当前不存在这类幽灵文件，不代表该排查手段无效。
 >
 > 2. 如果真实服务器上“删除了大日志，`df` 仍然满”，你会进一步检查什么？
 >
@@ -698,15 +698,15 @@ systemctl status alloy --no-pager
 >
 > 1. Loki 中查到了几条与 `course-logwriter` 有关的记录？选一条失败记录，填写它的时间。
 >
->    **答：**共查到 14 条与 course-logwriter 相关记录；失败记录时间：2026-11-12 09:03:05
+>    **答：**共查到 14 条与 course-logwriter 相关记录；失败记录时间：`2026-11-12 09:03:05`
 >
 > 2. 该记录的 `job`、`filename`、`host` 标签是什么？
 >
->    **答：**job 标签为`syslog`，host 标签为`xdj-VMware-Virtual-Platform`，该条日志无 filename 标签。
+>    **答：**`job="syslog"`，`host="xdj-VMware-Virtual-Platform"`，该日志条目不存在 filename 标签。
 >
 > 3. 这条平台记录与 4.2 节本机失败记录是否对应？为什么不能直接在 Loki 中搜索到 `app.log` 的全部内容？
 >
->    **答：**是对应的。Loki 只存储日志流的索引和日志块，不直接读取本地 app.log 文件；同时受查询时间范围、日志分块机制限制，因此无法直接获取 app.log 完整全部内容。
+>    **答：**是对应的。Loki 由 Promtail 采集日志，仅存储日志索引与分块后的日志数据，不会直接读取原始`app.log`文件；同时查询受时间范围、日志分块、采集过滤规则限制，因此无法直接获取`app.log`完整全部内容。
 
 ### 5.5 用 4W1R 将证据组织成事件
 
@@ -714,11 +714,11 @@ systemctl status alloy --no-pager
 
 | 4W1R | 要回答的问题 | 主要依据 | 填写 |
 | :--- | :--- | :--- | :--- |
-| **When** | 服务何时启动、写入何时失败？ | `journalctl`、Loki 时间 |服务正常启动；写入失败时间：2026-11-12 09:03:05 |
-| **Where** | 哪个文件系统、哪个路径满了？ | `mount`、`df` |本机根文件系统 `/`，磁盘空间耗尽 |
-| **Who** | 哪个服务发起写入？ | `systemctl`、错误日志 |`course-logwriter` 服务 |
-| **What** | 什么文件持续增长，哪些文件占用主要空间？ | `du`、`ls`、`app.log` |`app.log` 日志文件持续膨胀，占用大量磁盘空间 |
-| **Result** | 发生什么错误，造成什么影响？ | `ENOSPC`、failed、`dd` |报错 ENOSPC（磁盘空间不足），日志写入失败，服务无法正常写日志 |
+| **When** | 服务何时启动、写入何时失败？ | `journalctl`、Loki 时间 |course-logwriter 服务正常启动；写入失败时间：2026-11-12 09:03:05 |
+| **Where** | 哪个文件系统、哪个路径满了？ | `mount`、`df` |loop 文件系统 /loop 文件系统 `/dev/loop17`，挂载点 `/var/log/course-demo` |
+| **Who** | 哪个服务发起写入？ | `systemctl`、错误日志 |`course-logwriter` 服务发起日志写入 |
+| **What** | 什么文件持续增长，哪些文件占用主要空间？ | `du`、`ls`、`app.log` |`filler.bin`（约 220MB）、`app.log`（20~30MB）持续增长，`filler.bin`为本分区占用空间最大的文件 |
+| **Result** | 发生什么错误，造成什么影响？ | `ENOSPC`、failed、`dd` |ENOSPC（No space left on device）磁盘空间耗尽写入失败，服务无法继续写入日志，新日志无法落盘|
 
 把事件串成一条简短时间线，至少写出：
 
@@ -875,7 +875,7 @@ df -h /var/log/course-demo
 >
 > 2. 重启写入器后，`app.log` 是否重新产生并增长？短暂运行时服务是什么状态？验证结束后是否已停止？
 >
->    **答：**重启写入器后，`app.log`会持续写入、文件大小不断增长；短暂运行时服务状态为 active (running)；执行完验证命令后手动执行`systemctl stop`，服务已经停止。
+>    **答：**重启写入器后，app.log 会持续写入、文件大小不断增长；短暂运行时服务状态为 active (running)；执行完验证命令后手动执行 systemctl stop，服务已经停止。验证说明：空间释放后该 loop 文件系统恢复可写，日志写入正常。
 
 ![修复后空间恢复与 dd 成功](imgs/lab10-fix.png)
 
