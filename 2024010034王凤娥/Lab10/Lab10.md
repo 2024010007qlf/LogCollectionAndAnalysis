@@ -716,17 +716,21 @@ systemctl status alloy --no-pager
 >
 > 1. Loki 中查到了几条与 `course-logwriter` 有关的记录？选一条失败记录，填写它的时间。
 >
->    **答：**Loki 中查到多条和 course-logwriter 相关的记录；失败记录时间： 2026-11-12T09:05:14
+>    **答：**
+查询语句： {job="syslog"} |= "course-logwriter" 
+查到记录条数：93 条
+选取日志时间：2026-11-12T10:23:39
+标签：job="syslog"，filename="/var/log/syslog"，host="wfe-VMware-Virtual-Platform"
 >
 > 2. 该记录的 `job`、`filename`、`host` 标签是什么？
 >
 >    **答：**
-job 标签： syslog ；filename： /var/log/syslog ；host 为本台 Ubuntu 主机名。
+job 标签：syslog；filename： /var/log/syslog ；host：wfe‑VMware‑Virtual‑Platform
 >
 > 3. 这条平台记录与 4.2 节本机失败记录是否对应？为什么不能直接在 Loki 中搜索到 `app.log` 的全部内容？
 >
 >    **答：**
-这条 syslog 记录和本机 4.2 的失败记录相互对应，是同一个故障产生的上报日志。Loki 采集的是 syslog 里的服务报错信息，不是 app.log 本身的全部内容，因此不能直接在 Loki 里搜到 app.log 的完整内容。
+这条 syslog 记录和本机 4.2 的失败记录可以对应，属于同一次故障上报的日志。Loki 采集的是 syslog 上报的日志流，并非直接采集 app.log 文件本身，所以无法直接查到 app.log 的全部原始内容。
 
 ### 5.5 用 4W1R 将证据组织成事件
 
