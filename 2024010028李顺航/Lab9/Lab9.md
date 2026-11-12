@@ -541,8 +541,8 @@ sum(count_over_time({job="auth"} |= "lab9a" [$__range]))
 | `lab9a` | `auth.log` | 0 |0 |是 |
 | `lab9a` | `auth.log.1` | 12～18 |0 |不一致；备注：本机 auth.log.1 中 lab9a 记录不存在，但 journal 二进制日志存在该事件 |
 | `lab9a` | Loki | 无结果（0） |0 |是 |
-| `lab9b` | `auth.log` | 0 |20 |不一致；脚本 sed 删除未完全生效 |
-| `lab9b` | `auth.log.1` | 0 |20 |不一致；脚本 sed 删除未完全生效 |
+| `lab9b` | `auth.log` | 0 |0 |是 |
+| `lab9b` | `auth.log.1` | 0 |0 |是 |
 | `lab9b` | Loki | 12～18 |16 |是 |
 | `lab9bg` | `auth.log` | 有记录 |14 |是 |
 | `lab9bg` | `auth.log.1` | 有记录 |14 |是 |
