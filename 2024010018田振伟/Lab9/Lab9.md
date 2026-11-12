@@ -428,11 +428,11 @@ absent_over_time({job="auth"} [1m])
 
 | 4W1R | 含义 | 填写 |
 | :--- | :--- | :--- |
-| When 什么时候 | 事件发生的时刻，优先用正文时间 | |
-| Where 在哪里 | 哪个日志流、哪台主机，写标签 | |
-| Who 谁 | 记录正文里的主体 | |
-| What 做了什么 | 这条记录描述的动作 | |
-| Result 结果如何 | 动作的结果，成功还是失败 | |
+| When 什么时候 | 事件发生的时刻，优先用正文时间 |2026-11-12 08:26:52 |
+| Where 在哪里 | 哪个日志流、哪台主机，写标签 |host="localhost", __path__="/var/log/auth.log" |
+| Who 谁 | 记录正文里的主体 |lab9b，sshd 服务进程 |
+| What 做了什么 | 这条记录描述的动作 |SSH 服务对用户执行密码认证 |
+| Result 结果如何 | 动作的结果，成功还是失败 |成功 |
 
 Where 取记录来源标签（`job="auth"`、`host=...`），Who 取正文中的账号（`su` 切换到的用户）。查询所在的机器和登录虚拟机所用的账号不参与这两项。
 
@@ -540,7 +540,7 @@ sum(count_over_time({job="auth"} |= "lab9a" [$__range]))
 | `lab9b` | Loki | 12～18 |18 |一致 |
 | `lab9bg` | `auth.log` | 有记录 |0 |不一致 |
 | `lab9bg` | `auth.log.1` | 有记录 |22 |一致 |
-| `lab9bg` | Loki | 有记录，条数与两文件合计可能不同 |有记录 |一致 |
+| `lab9bg` | Loki | 有记录，条数与两文件合计可能不同 |0 |一致 |
 
 `auth.log` 与 `auth.log.1` 属于“本机文本”这一侧，合起来看；`journalctl` 属于“事件是否发生过”的独立证据；Loki 属于“是否进入过平台”的独立证据。
 
@@ -645,8 +645,8 @@ stat -c '%n inode=%i size=%s mtime=%y ctime=%z' /var/log/auth.log /var/log/auth.
 
 | 结论 | 支持证据 | 实测是否一致 |
 | :--- | :--- | :---: |
-| 阶段 A：采集环节中断 | `lab9a` 在 `auth.log.1` 中约 12～18 行，Loki 中无结果；`__path__` 不含 `.1`；positions 只有 `auth.log`；journal 与 Alloy 停止记录对应 | |
-| 阶段 B：本机文件被修改 | `lab9b` 在 Loki 与 journal 中有记录，`auth.log` 与 `auth.log.1` 中均为 0 | |
+| 阶段 A：采集环节中断 | `lab9a` 在 `auth.log.1` 中约 12～18 行，Loki 中无结果；`__path__` 不含 `.1`；positions 只有 `auth.log`；journal 与 Alloy 停止记录对应 |一致 |
+| 阶段 B：本机文件被修改 | `lab9b` 在 Loki 与 journal 中有记录，`auth.log` 与 `auth.log.1` 中均为 0 |一致 |
 
 > **报告记录**
 >
