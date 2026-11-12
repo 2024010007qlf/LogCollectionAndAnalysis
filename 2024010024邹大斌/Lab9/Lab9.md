@@ -651,8 +651,8 @@ stat -c '%n inode=%i size=%s mtime=%y ctime=%z' /var/log/auth.log /var/log/auth.
 
 | 结论 | 支持证据 | 实测是否一致 |
 | :--- | :--- | :---: |
-| 阶段 A：采集环节中断 | lab9a 在 auth.log.1 中，Loki 无结果；__path__ 只写死 /var/log/auth.log，不包含 .1 轮转文件；positions 只跟踪 auth.log；journal 存在 Alloy 停止、启动记录 | 一致|
-| 阶段 B：本机文件被修改 |lab9b 在 Loki、journal 都能查到记录；当前 auth.log 里该会话记录不存在，原记录随轮转进入 auth.log.1 |一致 |
+| 阶段 A：采集环节中断 | `lab9a` 在 `auth.log.1` 中，Loki 无结果；`__path__` 只写死 `/var/log/auth.log`，不包含 `.1` 轮转文件；`positions` 只跟踪 `auth.log`；`journal` 存在 Alloy 停止、启动记录  | 一致|
+| 阶段 B：本机文件被修改 |`lab9b` 在 Loki、journal都能查到记录；当前 `auth.log` 里该会话记录不存在，原记录随轮转进入 `auth.log.1` |一致 |
 
 > **报告记录**
 >
