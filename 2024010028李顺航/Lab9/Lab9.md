@@ -369,8 +369,7 @@ grep -c "user lab9" /var/log/auth.log.1
 >
 > 2. 当前文件与副本文件中的实验记录数分别是多少？
 >
->    实测：grep "user lab9"返回均为0；改用grep "to lab9"统计；auth.log合计20条，auth.log.1合计20条。
-
+>    实测：当前环境 auth.log、auth.log.1 里，没有包含 `user lab9` 的日志记录，命中条数为 0。
 ---
 
 ## 四、任务 2：核对平台侧的缺失
@@ -650,14 +649,10 @@ stat -c '%n inode=%i size=%s mtime=%y ctime=%z' /var/log/auth.log /var/log/auth.
 
 把实测结果填进下表，与给定结论对照：
 
-| 结论 | 支持证据 | 实测是否一致 |
-| :--- | :--- | :---: |
-| 阶段 A：采集环节中断 | `lab9a` 在 `auth.log.1` 中约 12～18 行，Loki 中无结果；`__path__` 不含 `.1`；positions 只有 `auth.log`；journal 与 Alloy 停止记录对应 |是 |
-| 阶段 B：本机文件被修改 | `lab9b` 在 Loki 与 journal 中有记录，`auth.log` 与 `auth.log.1` 中均为 0 |是 |
- 
 |结论|支持证据|实测是否一致|
 |阶段 A：采集环节中断|lab9a 记录存在 journal；Loki 为 0；__path__不含.1；journal 看到 Alloy 停止 / 重启|部分一致；auth.log.1 无 lab9a，journal 存在 lab9a 事件|
 |阶段 B：本机文件被修改|lab9b Loki、journal 存在；本机文本并未全部清空|部分一致；sed‑i 删除未完全生效，本机文件仍存在 lab9b 记录|
+
 > **报告记录**
 >
 > 1. Alloy 的 `__path__` 指向哪些路径？是否包含轮转文件？
@@ -688,7 +683,7 @@ stat -c '%n inode=%i size=%s mtime=%y ctime=%z' /var/log/auth.log /var/log/auth.
 
 结论中的时间区间以本人实测的空白区间为准：
 
-> **结论一（采集环节中断）**：阶段 A 期间（约 `__2026-22-12 09:40__` 至 `__2026-22-12 09:41__`），`lab9a` 的会话记录存在于 `auth.log.1` 和 journal，在 Loki 中为 0 条。Alloy 的 `__path__` 只指向 `/var/log/auth.log`，positions 也只记录该路径，`auth.log.1` 不在采集范围内；该时段 Alloy 处于停止状态。记录已经产生并写入本机，未进入平台，判断为采集环节中断。
+> **结论一（采集环节中断）**：阶段 A 期间（约 `__2026-11-12 09:40__` 至 `__2026-11-12 09:41__`），`lab9a` 的会话记录存在于 `auth.log.1` 和 journal，在 Loki 中为 0 条。Alloy 的 `__path__` 只指向 `/var/log/auth.log`，positions 也只记录该路径，`auth.log.1` 不在采集范围内；该时段 Alloy 处于停止状态。记录已经产生并写入本机，未进入平台，判断为采集环节中断。
 
 > **结论二（本机文件被修改）**：阶段 B 期间（约 `__2026-11-12 09:42__` 至 `__2026-11-12 09:43__`），`lab9b` 的会话记录在 Loki 和 journal 中均可查到，在 `auth.log` 与 `auth.log.1` 中均为 0 条。Alloy 从 `auth.log` 读取并送入 Loki，说明这些记录曾存在于该文件；现在本机两个文件都查不到，判断为文件在采集完成后被修改。
 
@@ -730,7 +725,7 @@ stat -c '%n inode=%i size=%s mtime=%y ctime=%z' /var/log/auth.log /var/log/auth.
 | 靠前一段的起止时间 | 阶段 A 的空白区间 |09:40–09:41 |
 | 靠前一段的缺口位置 | 采集环节（Alloy 停止） |Alloy 未采集 `.1` 轮转日志 |
 | 靠前一段的关键证据 | `auth.log.1` 有、Loki 无、`__path__` 不含 `.1`、journal 有 |与结论一致 |
-| 靠后一段的账号 | `lab9b` |20 |
+| 靠后一段的账号 | `lab9b` |lab9b |
 | 靠后一段的起止时间 | 阶段 B 的采集时段 |09:42–09:43 |
 | 靠后一段的缺口位置 | 本机文件被修改 |本地日志文件内容被篡改 |
 | 靠后一段的关键证据 | Loki 有、`auth.log` 与 `auth.log.1` 均无、journal 有 |与结论一致 |
