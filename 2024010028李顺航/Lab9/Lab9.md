@@ -544,8 +544,8 @@ sum(count_over_time({job="auth"} |= "lab9a" [$__range]))
 | `lab9b` | `auth.log` | 0 |0 |是 |
 | `lab9b` | `auth.log.1` | 0 |0 |是 |
 | `lab9b` | Loki | 12～18 |16 |是 |
-| `lab9bg` | `auth.log` | 有记录 |14 |是 |
-| `lab9bg` | `auth.log.1` | 有记录 |14 |是 |
+| `lab9bg` | `auth.log` | 有记录 |0 |不一致；本机 auth.log 中无匹配 `user lab9bg` 的日志 |
+| `lab9bg` | `auth.log.1` | 有记录 |0 |不一致；本机 auth.log.1 中无匹配 `user lab9bg` 的日志 |
 | `lab9bg` | Loki | 有记录，条数与两文件合计可能不同 |有记录 |是 |
 
 `auth.log` 与 `auth.log.1` 属于“本机文本”这一侧，合起来看；`journalctl` 属于“事件是否发生过”的独立证据；Loki 属于“是否进入过平台”的独立证据。
