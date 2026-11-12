@@ -649,9 +649,10 @@ stat -c '%n inode=%i size=%s mtime=%y ctime=%z' /var/log/auth.log /var/log/auth.
 
 把实测结果填进下表，与给定结论对照：
 
-|结论|支持证据|实测是否一致|
-|阶段 A：采集环节中断|lab9a 记录存在 journal；Loki 为 0；__path__不含.1；journal 看到 Alloy 停止 / 重启|部分一致；auth.log.1 无 lab9a，journal 存在 lab9a 事件|
-|阶段 B：本机文件被修改|lab9b Loki、journal 存在；本机文本并未全部清空|部分一致；sed‑i 删除未完全生效，本机文件仍存在 lab9b 记录|
+| 结论 | 支持证据 | 实测是否一致 |
+| :--- | :--- | :---: |
+| 阶段 A：采集环节中断 | `lab9a` 在 `auth.log.1` 中约 12～18 行，Loki 中无结果；`__path__` 不含 `.1`；positions 只有 `auth.log`；journal 与 Alloy 停止记录对应 |是 |
+| 阶段 B：本机文件被修改 | `lab9b` 在 Loki 与 journal 中有记录，`auth.log` 与 `auth.log.1` 中均为 0 |是 |
 
 > **报告记录**
 >
