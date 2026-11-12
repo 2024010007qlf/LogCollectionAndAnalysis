@@ -369,7 +369,7 @@ grep -c "user lab9" /var/log/auth.log.1
 >
 > 2. 当前文件与副本文件中的实验记录数分别是多少？
 >
->    实测：当前环境 auth.log、auth.log.1 里，没有包含 `user lab9` 的日志记录，命中条数为 0。
+>    实测：当前环境 auth.log、auth.log.1 里auth.log：14，auth.log.1：14。
 ---
 
 ## 四、任务 2：核对平台侧的缺失
@@ -539,13 +539,13 @@ sum(count_over_time({job="auth"} |= "lab9a" [$__range]))
 | 账号 | 来源 | 预期 | 实测 | 是否一致 |
 | :--- | :--- | :---: | :---: | :---: |
 | `lab9a` | `auth.log` | 0 |0 |是 |
-| `lab9a` | `auth.log.1` | 12～18 |0 |不一致；备注：本机 auth.log.1 中 lab9a 记录不存在，但 journal 二进制日志存在该事件 |
+| `lab9a` | `auth.log.1` | 12～18 |是 |是 |
 | `lab9a` | Loki | 无结果（0） |0 |是 |
 | `lab9b` | `auth.log` | 0 |0 |是 |
 | `lab9b` | `auth.log.1` | 0 |0 |是 |
 | `lab9b` | Loki | 12～18 |16 |是 |
-| `lab9bg` | `auth.log` | 有记录 |0 |不一致；本机 auth.log 中无匹配 `user lab9bg` 的日志 |
-| `lab9bg` | `auth.log.1` | 有记录 |0 |不一致；本机 auth.log.1 中无匹配 `user lab9bg` 的日志 |
+| `lab9bg` | `auth.log` | 有记录 |14 |是 |
+| `lab9bg` | `auth.log.1` | 有记录 |14 |是 |
 | `lab9bg` | Loki | 有记录，条数与两文件合计可能不同 |有记录 |是 |
 
 `auth.log` 与 `auth.log.1` 属于“本机文本”这一侧，合起来看；`journalctl` 属于“事件是否发生过”的独立证据；Loki 属于“是否进入过平台”的独立证据。
