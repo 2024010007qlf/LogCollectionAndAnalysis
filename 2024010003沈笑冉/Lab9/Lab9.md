@@ -358,11 +358,16 @@ grep -c "user lab9" /var/log/auth.log.1
 >
 > 1. `ls -l /var/log/auth.log*` 显示了哪几个文件？各自的大小和修改时间是什么？
 >
->    实测：/var/log/auth.log、/var/log/auth.log.1；auth.log inode=2361504；auth.log.1 inode=2360859，两个文件修改时间为实验执行对应时刻，auth.log.1 为复制备份产生。
+>    实测：① /var/log/auth.log：权限 -rw-r-----，属主 syslog，属组 adm，大小 1940，修改时间 11 月 09:03
+② /var/log/auth.log.1：权限 -rw-r-----，属主 syslog，属组 adm，大小 43277，修改时间 11 月 09:02
+③ /var/log/auth.log.1.lab9bak：权限 -rw-r-----，属主 syslog，属组 adm，大小 65065，修改时间 1 月 20:27
+④ /var/log/auth.log.2.gz：权限 -rw-r-----，属主 syslog，属组 adm，大小 13131，修改时间 10 月 28 12:05
+⑤ /var/log/auth.log.3.gz：权限 -rw-r-----，属主 syslog，属组 adm，大小 19219，修改时间 10 月 19 22:17
+⑥ /var/log/auth.log.4.gz：权限 -rw-r-----，属主 syslog，属组 adm，大小 4016，修改时间 10 月 13 18:17
 >
 > 2. 当前文件与副本文件中的实验记录数分别是多少？
 >
->    实测：/var/log/auth.log中实验相关 grep 统计结果全部为 0；/var/log/auth.log.1包含 lab9a 共 12 条，lab9bg 背景记录若干，无 lab9b 记录。
+>    实测：当前文件 /var/log/auth.log，grep -c "user lab9" 结果为 0；副本轮转文件 /var/log/auth.log.1，grep -c "user lab9" 结果为 34
 
 ---
 
@@ -428,11 +433,11 @@ absent_over_time({job="auth"} [1m])
 
 | 4W1R | 含义 | 填写 |
 | :--- | :--- | :--- |
-| When 什么时候 | 事件发生的时刻，优先用正文时间 |Oct 29 08:17:58|
-| Where 在哪里 | 哪个日志流、哪台主机，写标签 |job="auth"，本机实验虚拟机主机|
-| Who 谁 | 记录正文里的主体 |lab9bg|
-| What 做了什么 | 这条记录描述的动作 |su 会话打开并关闭，产生一次背景测试会话|
-| Result 结果如何 | 动作的结果，成功还是失败 |会话正常建立并关闭，无报错|
+| When 什么时候 | 事件发生的时刻，优先用正文时间 | 2026-11-10 21:50:50|
+| Where 在哪里 | 哪个日志流、哪台主机，写标签 |日志标签 job="auth"，主机 zyx1-VMware-Virtual-Platform |
+| Who 谁 | 记录正文里的主体 |普通用户 zyx1（uid=1000），通过 sudo 提权到 root（uid=0） |
+| What 做了什么 | 这条记录描述的动作 |执行 sudo 命令，由 pam_unix 认证模块成功为 root 用户开启了一个 sudo 会话（session opened）|
+| Result 结果如何 | 动作的结果，成功还是失败 |成功（session opened，说明 sudo 认证通过，root 会话已建立）|
 
 Where 取记录来源标签（`job="auth"`、`host=...`），Who 取正文中的账号（`su` 切换到的用户）。查询所在的机器和登录虚拟机所用的账号不参与这两项。
 
@@ -450,11 +455,11 @@ Where 取记录来源标签（`job="auth"`、`host=...`），Who 取正文中的
 >
 > | 项目 | 预期 | 实测 |
 > | :--- | :--- | :--- |
-> | Loki 中 `lab9a` 的条数 | 无结果（0 条） |0|
-> | Loki 中 `lab9b` 的条数 | 12～18 |15|
-> | 空白区间起止时间 | 阶段 A 期间，长度约 1 分钟 |08:18 ~ 08:20|
-> | 空白区间前后均有记录 | 是 |是|
-> | Loki 中 `lab9b` 记录的首末时间 | 阶段 B 期间，约 1 分钟 |08:21 ~ 08:23|
+> | Loki 中 `lab9a` 的条数 | 无结果（0 条） |0 |
+> | Loki 中 `lab9b` 的条数 | 12～18 |29 |
+> | 空白区间起止时间 | 阶段 A 期间，长度约 1 分钟 |阶段 A，约 1 分钟 |
+> | 空白区间前后均有记录 | 是 |是 |
+> | Loki 中 `lab9b` 记录的首末时间 | 阶段 B 期间，约 1 分钟 |首：2026‑11‑10 21:53:03，末：2026‑11‑10 21:53:21 |
 >
 > `lab9a` 的计数查询：
 >
@@ -532,15 +537,15 @@ sum(count_over_time({job="auth"} |= "lab9a" [$__range]))
 
 | 账号 | 来源 | 预期 | 实测 | 是否一致 |
 | :--- | :--- | :---: | :---: | :---: |
-| `lab9a` | `auth.log` | 0 |0|一致|
-| `lab9a` | `auth.log.1` | 12～18 |12|一致|
-| `lab9a` | Loki | 无结果（0） |0|一致|
-| `lab9b` | `auth.log` | 0 |0|一致|
-| `lab9b` | `auth.log.1` | 0 |0|一致|
-| `lab9b` | Loki | 12～18 |15|一致|
-| `lab9bg` | `auth.log` | 有记录 |0|不一致；脚本sed‑i处理auth.log后，当前auth.log内lab9bg记录被清除，仅auth.log.1备份文件保留相关记录|
-| `lab9bg` | `auth.log.1` | 有记录 |有，多条|一致|
-| `lab9bg` | Loki | 有记录，条数与两文件合计可能不同 |有记录|一致|
+| `lab9a` | `auth.log` | 0|0 | 是|
+| `lab9a` | `auth.log.1` | 12～18 |12 |是 |
+| `lab9a` | Loki | 无结果（0） | 0| 是|
+| `lab9b` | `auth.log` | 0 |0 |是 |
+| `lab9b` | `auth.log.1` | 0 |22 | 否|
+| `lab9b` | Loki | 12～18 | 29| 否|
+| `lab9bg` | `auth.log` | 有记录 |0 |否 |
+| `lab9bg` | `auth.log.1` | 有记录 |22 | 是|
+| `lab9bg` | Loki | 有记录，条数与两文件合计可能不同 | 有记录|是 |
 
 `auth.log` 与 `auth.log.1` 属于“本机文本”这一侧，合起来看；`journalctl` 属于“事件是否发生过”的独立证据；Loki 属于“是否进入过平台”的独立证据。
 
@@ -645,26 +650,27 @@ stat -c '%n inode=%i size=%s mtime=%y ctime=%z' /var/log/auth.log /var/log/auth.
 
 | 结论 | 支持证据 | 实测是否一致 |
 | :--- | :--- | :---: |
-| 阶段 A：采集环节中断 | `lab9a` 在 `auth.log.1` 中约 12～18 行，Loki 中无结果；`__path__` 不含 `.1`；positions 只有 `auth.log`；journal 与 Alloy 停止记录对应 |一致|
-| 阶段 B：本机文件被修改 | `lab9b` 在 Loki 与 journal 中有记录，`auth.log` 与 `auth.log.1` 中均为 0 |一致|
+| 阶段 A：采集环节中断 | `lab9a` 在 `auth.log.1` 中约 12～18 行，Loki 中无结果；`__path__` 不含 `.1`；positions 只有 `auth.log`；journal 与 Alloy 停止记录对应 | 是|
+| 阶段 B：本机文件被修改 | `lab9b` 在 Loki 与 journal 中有记录，`auth.log` 与 `auth.log.1` 中均为 0 |是 |
 
 > **报告记录**
 >
 > 1. Alloy 的 `__path__` 指向哪些路径？是否包含轮转文件？
 >
->    实测：__path__ = "/var/log/auth.log"；只指向该单个文件，不包含 auth.log.1，没有使用通配符。
+>    实测：Alloy 的 __path__ 配置指向 /var/log/auth.log，仅采集当前活跃日志文件，配置中没有包含 auth.log.1 以及 .gz 这类已经轮转归档的日志文件。
+
 >
 > 2. positions 文件中记录了哪些路径？读取位置与文件大小是否匹配？
 >
->    实测：本版本 Alloy 不再使用单一 positions.yml，位置数据存放于子目录loki.source.file.linux_logs/，仅跟踪/var/log/auth.log，不跟踪轮转备份文件 auth.log.1。
+>    实测：positions 文件记录的路径为 /var/log/auth.log，只跟踪活跃日志；采集中断发生前，读取偏移位置和当时文件大小匹配；日志轮转之后，原文件变为 auth.log.1，采集器不再读取该文件，positions 内偏移不再和轮转后的旧文件匹配。
 >
 > 3. `journalctl` 中能查到 `lab9a` 和 `lab9b` 的记录吗？条数分别是多少？
 >
->    实测：journalctl 均可查询到 lab9a、lab9b 全部会话记录；journal 不受 auth.log 文本文件修改影响，证明两段会话事件真实发生。
+>    实测：journalctl 中可以查到 lab9a、lab9b 的会话记录；lab9a 记录若干条（落在轮转前，对应阶段 A），lab9b 记录若干条（阶段 B，日志写入后文件被改写）。原版命令 grep "user lab9a" 因为日志文本不完全匹配该固定串无输出，使用关键字 lab9a 检索成功获取会话日志。
 >
 > 4. `journalctl -u alloy` 中阶段 A 附近是否有 Stopped/Started 记录？
 >
->    实测：存在，阶段 A 时间附近可以看到 Alloy 服务 Stopped，之后出现 Started，对应采集器中断‑恢复过程。
+>    实测：在阶段 A 时间附近，可以检索到 alloy.service 的 Stopped 停止记录以及后续 Started 启动记录，证明 Alloy 在该时间段发生重启，造成采集中断。
 
 > **检查点 ③**：采集路径、positions、journal、Alloy 服务记录、文件元数据均已核对；证据汇总表已填写；`lab9-alloy.png` 与 `lab9-journal.png` 已保存。
 
@@ -678,9 +684,9 @@ stat -c '%n inode=%i size=%s mtime=%y ctime=%z' /var/log/auth.log /var/log/auth.
 
 结论中的时间区间以本人实测的空白区间为准：
 
-> **结论一（采集环节中断）**：阶段 A 期间（约 `08:18` 至 `08:20`），`lab9a` 的会话记录存在于 `auth.log.1` 和 journal，在 Loki 中为 0 条。Alloy 的 `__path__` 只指向 `/var/log/auth.log`，positions 也只记录该路径，`auth.log.1` 不在采集范围内；该时段 Alloy 处于停止状态。记录已经产生并写入本机，未进入平台，判断为采集环节中断。
+> **结论一（采集环节中断）**：阶段 A 期间（约 `__ 2026-11-10 21:55:00__` 至 `__ 2026-11-10 22:05:00__`），`lab9a` 的会话记录存在于 `auth.log.1` 和 journal，在 Loki 中为 0 条。Alloy 的 `__path__` 只指向 `/var/log/auth.log`，positions 也只记录该路径，`auth.log.1` 不在采集范围内；该时段 Alloy 处于停止状态。记录已经产生并写入本机，未进入平台，判断为采集环节中断。
 
-> **结论二（本机文件被修改）**：阶段 B 期间（约 `08:21` 至 `08:23`），`lab9b` 的会话记录在 Loki 和 journal 中均可查到，在 `auth.log` 与 `auth.log.1` 中均为 22 条。Alloy 从 `auth.log` 读取并送入 Loki，说明这些记录曾存在于该文件；现在本机两个文件都查不到，判断为文件在采集完成后被修改。
+> **结论二（本机文件被修改）**：阶段 B 期间（约 `__2026‑11‑10 21:53:03__` 至 `_2026‑11‑10 21:53:21___`），`lab9b` 的会话记录在 Loki 和 journal 中均可查到，在 `auth.log` 与 `auth.log.1` 中均为 0 条。Alloy 从 `auth.log` 读取并送入 Loki，说明这些记录曾存在于该文件；现在本机两个文件都查不到，判断为文件在采集完成后被修改。
 
 两条结论分别对应 2.2 节表中的两行。结论一时间区间取 4.2 节定位的空白区间；结论二时间区间取 4.3 节表格中 `lab9b` 记录的首末时间。
 
@@ -698,13 +704,13 @@ stat -c '%n inode=%i size=%s mtime=%y ctime=%z' /var/log/auth.log /var/log/auth.
 
 | 结论要素 | 结论中的内容 | 实测依据 | 是否一致 |
 | :--- | :--- | :--- | :---: |
-| 结论一：时间区间 | 阶段 A 的空白区间 | 4.2 节记录的起止时间 |一致|
-| 结论一：日志源 | `auth.log.1` 有、Loki 无 | 5.3 节对照表 |一致|
-| 结论一：机制证据 | `__path__` 不含 `.1`、Alloy 停止 | 6.1、6.2 节输出 |一致|
-| 结论二：时间区间 | 阶段 B 的采集时段 | 4.3 节表格中 `lab9b` 的首末时间 |一致|
-| 结论二：日志源 | Loki 有、本机文本无 | 5.3 节对照表 |一致|
-| 结论二：机制证据 | journal 与 Loki 有记录、两个文本文件为 0 | 6.2、6.3 节输出 |一致|
-| 证据边界 | 未核对 syslog、nginx、内核日志 | 7.2 节说明 |一致|
+| 结论一：时间区间 | 阶段 A 的空白区间 | 4.2 节记录的起止时间 |是 |
+| 结论一：日志源 | `auth.log.1` 有、Loki 无 | 5.3 节对照表 | 是|
+| 结论一：机制证据 | `__path__` 不含 `.1`、Alloy 停止 | 6.1、6.2 节输出 |是 |
+| 结论二：时间区间 | 阶段 B 的采集时段 | 4.3 节表格中 `lab9b` 的首末时间 | 是|
+| 结论二：日志源 | Loki 有、本机文本无 | 5.3 节对照表 | 是|
+| 结论二：机制证据 | journal 与 Loki 有记录、两个文本文件为 0 | 6.2、6.3 节输出 |是 |
+| 证据边界 | 未核对 syslog、nginx、内核日志 | 7.2 节说明 | 是|
 
 > **检查点 ④**：两条结论的时间区间已填写；核对表全部勾选；实测与结论不一致的项已在“实测”栏注明。
 
@@ -716,22 +722,22 @@ stat -c '%n inode=%i size=%s mtime=%y ctime=%z' /var/log/auth.log /var/log/auth.
 
 | 项目 | 给定内容 | 实测/核对 |
 | :--- | :--- | :--- |
-| 靠前一段的账号 | `lab9a` |lab9a|
-| 靠前一段的起止时间 | 阶段 A 的空白区间 |08:18 ~ 08:20|
-| 靠前一段的缺口位置 | 采集环节（Alloy 停止） |采集环节中断，Alloy 服务停止，auth.log.1 不在采集路径|
-| 靠前一段的关键证据 | `auth.log.1` 有、Loki 无、`__path__` 不含 `.1`、journal 有 |lab9a 在 auth.log.1 共 12 行，Loki 为 0，journal 存在记录|
-| 靠后一段的账号 | `lab9b` |lab9b|
-| 靠后一段的起止时间 | 阶段 B 的采集时段 |08:21 ~ 08:23|
-| 靠后一段的缺口位置 | 本机文件被修改 |sed‑i 删除 auth.log 内 lab9b 相关记录，文件 inode 变更|
-| 靠后一段的关键证据 | Loki 有、`auth.log` 与 `auth.log.1` 均无、journal 有 |Loki 存在 lab9b 共 15 条，两份本机文本都为 0，journal 完整保留会话|
-| `__path__` 的配置内容 | `/var/log/auth.log` |/var/log/auth.log，无轮转文件|
-| positions 中的路径与读取位置 | 只有 `auth.log`，偏移接近文件大小 |新版 Alloy 使用子目录存储跟踪状态，仅跟踪 auth.log|
-| `journalctl` 与 `auth.log` 的条数差异 | `lab9b` 在 journal 有记录、文本为 0 |journal 存在 lab9a、lab9b；auth.log 两份文本 lab9b 均为 0|
-| 两段缺失是否影响同一批记录 | 否，分别对应 `lab9a` 和 `lab9b` |否，lab9a、lab9b 为两组独立会话|
-| 两段的结论 | 采集环节中断 / 本机文件被修改 |阶段 A：采集环节中断；阶段 B：本机文本文件被修改|
-| 关键 LogQL | `sum(count_over_time({job="auth"} [1m]))`、`absent_over_time({job="auth"} [1m])` |同上|
-| 证据截图 | `lab9-loki-gap.png`、`lab9-local-count.png`、`lab9-alloy.png`、`lab9-journal.png` |4 张截图已嵌入文档|
-| 处置建议 | 告警、完整性校验、集中采集（任选一个方向） |监控采集器 Alloy 运行状态并配置服务异常告警；开启日志完整性校验；重要日志采用服务端主动推送模式，不完全依赖本地文件采集；定期对比 journald 与文本日志，发现记录不一致及时告警。|
+| 靠前一段的账号 | `lab9a` |lab9a |
+| 靠前一段的起止时间 | 阶段 A 的空白区间 |2026-11-10 21:50:50 ~ 2026-11-10 21:52:00 |
+| 靠前一段的缺口位置 | 采集环节（Alloy 停止） | Alloy 服务在此时间段停止运行，日志无法发送到 Loki|
+| 靠前一段的关键证据 | `auth.log.1` 有、Loki 无、`__path__` 不含 `.1`、journal 有 |`auth.log.1` 存在 lab9a 记录，Loki 查询 lab9a 条数为 0；采集路径仅`/var/log/auth.log`，不包含轮转文件；journalctl 可查到 lab9a 会话记录 |
+| 靠后一段的账号 | `lab9b` | lab9b|
+| 靠后一段的起止时间 | 阶段 B 的采集时段 |2026‑11‑10 21:53:03 ~ 2026‑11‑10 21:53:21 |
+| 靠后一段的缺口位置 | 本机文件被修改 |日志被 Alloy 采集上传 Loki 后，本机auth.log被 sed 删除对应行 |
+| 靠后一段的关键证据 | Loki 有、`auth.log` 与 `auth.log.1` 均无、journal 有 |Loki 可查到 lab9b 记录（29 条）；`auth.log`、`auth.log.1`中 grep 查询 lab9b 结果为 0；journalctl 可查到 lab9b 会话记录 |
+| `__path__` 的配置内容 | `/var/log/auth.log` | /var/log/auth.log，仅采集当前活跃日志，不包含轮转文件|
+| positions 中的路径与读取位置 | 只有 `auth.log`，偏移接近文件大小 |仅记录/var/log/auth.log；采集中断前偏移和文件大小匹配，轮转后不再跟踪 auth.log.1 |
+| `journalctl` 与 `auth.log` 的条数差异 | `lab9b` 在 journal 有记录、文本为 0 | journal 中 lab9b 存在会话记录，本机两个 auth 相关文本文件中 lab9b 记录条数为 0|
+| 两段缺失是否影响同一批记录 | 否，分别对应 `lab9a` 和 `lab9b` | 否，分别对应 lab9a 和 lab9b，是两次独立的缺失场景|
+| 两段的结论 | 采集环节中断 / 本机文件被修改 |lab9a：采集环节中断；lab9b：本机文件被修改 |
+| 关键 LogQL | `sum(count_over_time({job="auth"} [1m]))`、`absent_over_time({job="auth"} [1m])` | |sum(count_over_time({job="auth"} [1m]))、absent_over_time({job="auth"} [1m])
+| 证据截图 | `lab9-loki-gap.png`、`lab9-local-count.png`、`lab9-alloy.png`、`lab9-journal.png` | lab9-loki-gap.png、lab9-local-count.png、lab9-alloy.png、lab9-journal.png|
+| 处置建议 | 告警、完整性校验、集中采集（任选一个方向） 开启日志采集状态告警，对本地 auth.log 做文件完整性校验（inode / 哈希监控），防止日志被恶意删除篡改| |
 
 ---
 
@@ -741,16 +747,17 @@ stat -c '%n inode=%i size=%s mtime=%y ctime=%z' /var/log/auth.log /var/log/auth.
 
 1. 停止 Alloy 三分钟后重新启动，这三分钟内写入的日志会不会丢失？
 
-   > 不会丢。Alloy 重启后从 positions 记录的字节位置续读，停止期间追加的内容会被补读并发送，Loki 中的时间戳集中在重启时刻。文件被替换、截断，或轮转后移出采集路径时，位置失效，未读部分才会丢失。
+   > 不会丢失。Alloy 重启后会根据 positions 文件记录的字节偏移位置继续读取日志；停止期间新增写入的日志，会在重启后被补读、发送给 Loki。只有发生文件被替换、截断、轮转移出采集路径等情况，positions 记录失效，尚未读完的日志才有可能丢失。
 
 2. `logrotate` 的 `create` 与 `copytruncate` 两种方式，采集器分别会遇到什么问题？
 
-   > `create` 把旧文件改名并新建同名文件，inode 改变；采集路径只指向当前文件名时，改名后的旧文件不再被读取，未读完的部分丢失。`copytruncate` 先复制再清空，inode 不变、文件大小回退；复制与清空之间写入的行既不在副本中，也会因位置重置而丢失。
+   > • create： 将旧日志改名，新建同名日志文件，inode 发生改变；采集路径只写当前文件名时，改名后的旧文件不会再被采集读取。
+
+• copytruncate： 先复制日志，再清空原文件，inode 保持不变；复制操作和清空操作之间新写入的日志行不会被复制到副本中，同时文件偏移重置，容易造成这部分日志丢失。
 
 3. 某段时间 `auth.log` 中没有记录，Loki 中也没有记录，能否据此判断“这段时间没有人登录”？
 
-   > 不能。两侧都为空只能说明这两个来源没有记录。需要检查 journald 是否持久化、`last`/`lastb`、审计日志、文件元数据，以及其他主机的日志；还要排除采集器与文件同时故障的情况。
-
+   > 不能。两个来源同时为空，仅代表这两处没有采集/留存对应的登录日志。还需要核查 journal 持久化日志、last / lastb、审计日志、文件元数据，必要时核对其他主机日志；同时也要排除采集器故障、文件同步异常等问题，不能直接判定无人登录。
 ---
 
 ## 十、常见问题
