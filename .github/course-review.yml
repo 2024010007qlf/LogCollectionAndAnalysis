@@ -458,3 +458,33 @@ assignments:
       - lab10-du.png 应显示 du -sh * 与 df -h 的对比，能辨认 filler.bin 是最大文件且 df 为 100% 或 Avail 为 0。只显示 df、没有 du 结果，或只显示 du、没有容量状态时判为不完整。
       - lab10-fix.png 应显示修复后的 df -h（Avail 大于 0、Use% 明显下降）和 dd 成功写入约 1MB 的 test 文件。只有 df、没有 dd 验证，或 dd 仍报 No space left on device 时判为不完整。
       - 报告与截图的一致性：文件系统、大小、百分比、时间、查询与结论方向应一致，不要求逐字相同。报告称已查到 Loki 记录而缺少查询语句与条数、或报告数值与截图明显矛盾时指出即可。核心证据整体缺失（既没有满之前的 df，也没有 ENOSPC 与修复验证）时才判为不合格。
+  Lab11:
+    deadline: "2026-11-27T00:00:00+08:00"
+    grading:
+      mode: tiered
+      max_points: "10.00"
+    report_template: homework/Lab11/Lab11.md
+    required_files:
+      - Lab11.md
+      - imgs/lab11-oom.png
+      - imgs/lab11-fix.png
+    template_metrics:
+      enabled: true
+      report_file: Lab11.md
+      characters: ['#', '-', '*', '`', '|', '>']
+      max_file_bytes: 200000
+    vision_files:
+      - imgs/lab11-oom.png
+      - imgs/lab11-fix.png
+    review_points:
+      - 任务 1（3.1–3.2 节）：记录本人虚拟机的 cgroup2fs、可用内存，以及启动前服务状态、MemoryMax、MemorySwapMax 和 OOMPolicy。128M 与 134217728 字节等价。说明每 0.2 秒申请 8 MiB、列表保留旧块，因此累计量约每秒增加 40 MiB。
+      - 任务 2（4.1–4.3 节）：应提供至少两条连续分配记录、最后一次成功分配的时间和累计量，以及服务 Result、ExecMainStatus 和同次内核 OOM 原文。用时间、受害 PID、进程名或服务路径关联记录。Result=signal 时，结合 SIGKILL 与内核 OOM 证据同样有效；单凭信号 9 不足以认定 OOM。
+      - 任务 2（4.4 节）：用 Lab5 的 Loki 数据源查询 syslog 流中的 course-memhog-result 退出摘要。报告应给出时间范围和 LogQL，用 host、服务名、时间和退出结果对应本次本机故障。若结果为空，接受实际的本地 syslog 与平台查询结果及分层排查记录。平台核对只审文字，不增加截图，不要求 Loki 保留内核 journal 全文。
+      - 任务 3（5.1–5.2 节）：优先填写退出时保存在服务 journal 中的 oom、oom_kill 和可用峰值。若读数缺失，记录查询结果与缺项，接受同次内核日志中的 cgroup 范围、受害进程和服务退出结果作为替代。时间线、4W1R 与证据应能对应；事后的 free 输出仅作辅助。
+      - 任务 4（6.1–6.3 节）：保留原服务与限额，使用固定长度队列，观察至少 10 秒并超过原故障所用时间。记录观察时长、累计分配量、当前用量、硬上限、active 状态和新运行的 oom_kill=0，解释累计申请量与当前驻留数据的差别，并记录清理后的服务状态。
+      - 综合思考（第七节）：说明提高无界程序的限额只会推迟触顶，合理容量需结合工作负载；给出可关联的两类日志、关联字段及一个能反映内存压力或 OOM 的监控指标。8.2 节选读无需操作、作答或截图。
+      - PID、具体时间、最后一次分配量和峰值按本人环境判定；不得要求复现固定 PID 或恰好分配 120 MiB。缺测按 5.1 节提供替代证据即视为完成，无需重跑。提交目录只含 Lab11.md 与 imgs 中的两张截图。基线、连续分配记录、计数及清理结果以报告文字或表格审核，无需另附截图。
+    vision_review_points:
+      - 允许把同一次运行的相关输出合理拼图。检查命令、服务名、日志时间或 PID 能否同报告对应；不同系统语言、日志分行和内存显示单位均可。
+      - lab11-oom.png 应有服务的失败或信号退出结果，以及同次内核 OOM 记录中的进程名和 PID。允许内核把约束和受害进程分多行显示。
+      - lab11-fix.png 应能看到修复后同一服务处于 active、内存硬上限仍为 128 MiB、当前用量低于上限，且新一次运行的 oom_kill 为 0。
