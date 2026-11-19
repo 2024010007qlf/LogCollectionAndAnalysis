@@ -697,7 +697,7 @@ systemctl status alloy --no-pager
 >
 > 2. 该记录的 `job`、`filename`、`host` 标签是什么？
 >
->    **答：**job：`syslog`；filename：`100%`；host：`msy-VMware-Virtual-Platform`
+>    **答：**job：`syslog`；filename：`/var/log/syslog`；host：`msy-VMware-Virtual-Platform`
 >
 > 3. 这条平台记录与 4.2 节本机失败记录是否对应？为什么不能直接在 Loki 中搜索到 `app.log` 的全部内容？
 >
