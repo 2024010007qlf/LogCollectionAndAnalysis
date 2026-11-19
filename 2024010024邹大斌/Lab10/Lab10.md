@@ -706,15 +706,25 @@ systemctl status alloy --no-pager
 >
 > 1. Loki 中查到了几条与 `course-logwriter` 有关的记录？选一条失败记录，填写它的时间。
 >
->    **答：查到多条，失败记录时间：2026-11-19 08:22:50**
+>    **答：Loki 查询语句：
+plaintext
+￼
+￼
+{job="syslog"} |= "course-logwriter" |= "write failed"
+￼
+查询返回日志条数：多条
+失败记录时间：2026-11-19 08:22:50**
 >
 > 2. 该记录的 `job`、`filename`、`host` 标签是什么？
 >
->    **答：job="syslog"，filename="/var/log/course-demo/app.log"，host="hu-VMware-Virtual-Platform"**
+>    **答：该记录标签：
+job="syslog"
+filename="/var/log/course-demo/app.log"
+host="hu-VMware-Virtual-Platform"
 >
 > 3. 这条平台记录与 4.2 节本机失败记录是否对应？为什么不能直接在 Loki 中搜索到 `app.log` 的全部内容？
 >
->    **答：可以对应，时间匹配。Loki 属于日志采集索引系统，不是直接读取原始文件，存在采集过滤、截断，无法获取 app.log 完整原始内容。
+>    **答：时间和事件匹配，可以对应。Loki 是日志采集索引系统，只抓取匹配过滤规则的日志片段，存在采集延迟、过滤、采样限制，不是直接读取原始 app.log 文件，因此无法获取文件全部原始内容。
 4W1R
 When：08:22:33 启动，08:22:50 写入失败，运行时长 17.269s
 Where：文件系统 /dev/loop18，挂载路径 /var/log/course-demo
