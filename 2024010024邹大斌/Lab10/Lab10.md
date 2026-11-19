@@ -720,7 +720,7 @@ plaintext
 >    **答：该记录标签：
 job="syslog"
 filename="/var/log/course-demo/app.log"
-host="hu-VMware-Virtual-Platform"
+host="hu-VMware-Virtual-Platform"**
 >
 > 3. 这条平台记录与 4.2 节本机失败记录是否对应？为什么不能直接在 Loki 中搜索到 `app.log` 的全部内容？
 >
